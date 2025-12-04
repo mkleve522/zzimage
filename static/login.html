@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - ZZImage</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-logo">
+            <span class="logo-icon">🎨</span>
+            <h1>ZZImage</h1>
+        </div>
+        <p class="login-subtitle">AI 文生图服务管理平台</p>
+        
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <label for="username">
+                    <span class="label-icon">👤</span>
+                    用户名
+                </label>
+                <input type="text" id="username" placeholder="请输入用户名" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">
+                    <span class="label-icon">🔒</span>
+                    密码
+                </label>
+                <input type="password" id="password" placeholder="请输入密码" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-primary">
+                <span class="btn-text">登 录</span>
+                <span class="btn-loading hidden">登录中...</span>
+            </button>
+            <div id="login-error" class="login-error hidden"></div>
+        </form>
+        
+        <div class="login-footer">
+            <p>安全登录 · 数据加密传输</p>
+        </div>
+    </div>
+
+    <script>
+        // 检查是否已登录
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                if (data.authenticated) {
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('检查认证状态失败:', error);
+            }
+        }
+
+        // 页面加载时检查登录状态
+        checkAuth();
+
+        // 登录表单提交
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('login-error');
+            
+            if (!username || !password) {
+                errorEl.textContent = '请输入用户名和密码';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    errorEl.classList.add('hidden');
+                    window.location.href = '/';
+                } else {
+                    errorEl.textContent = data.detail || '登录失败，请检查用户名和密码';
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                errorEl.textContent = '网络错误，请重试';
+                errorEl.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

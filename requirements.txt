@@ -1,0 +1,15 @@
+# FastAPI框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP客户端
+aiohttp>=3.9.0
+
+# SOCKS5代理支持
+aiohttp-socks>=0.8.0
+
+# 数据验证
+pydantic>=2.5.0
+
+# 其他工具
+python-multipart>=0.0.6

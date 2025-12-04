@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZZImage - 文生图服务</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- 主应用 -->
+    <div id="main-app" class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <h1>🎨 ZZImage</h1>
+            <nav class="nav-tabs">
+                <button class="tab-btn active" data-tab="generate">图片生成</button>
+                <button class="tab-btn" data-tab="cookies">Cookie管理</button>
+                <button class="tab-btn" data-tab="keys">API密钥</button>
+                <button class="tab-btn" data-tab="models">模型配置</button>
+            </nav>
+            <button id="logout-btn" class="btn-secondary logout-btn">退出登录</button>
+        </header>
+
+        <!-- 图片生成页面 -->
+        <section id="generate" class="tab-content active">
+            <div class="generate-layout">
+                <!-- 左侧：输入区域 -->
+                <div class="input-panel">
+                    <div class="form-group">
+                        <label for="prompt">提示词 <span class="required">*</span></label>
+                        <textarea id="prompt" rows="4" placeholder="描述你想要生成的图片内容..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="negative-prompt">负向提示词</label>
+                        <textarea id="negative-prompt" rows="2" placeholder="描述不想要的内容（可选）"></textarea>
+                    </div>
+
+                    <!-- 推理步数 -->
+                    <div class="form-group">
+                        <label for="steps-input">推理步数</label>
+                        <input type="number" id="steps-input" min="1" max="50" value="9">
+                        <div class="form-hint">模型: z-image-turbo，推荐步数: 9</div>
+                    </div>
+
+                    <!-- 尺寸选择 -->
+                    <div class="form-group">
+                        <label>图片尺寸</label>
+                        <div class="size-selector">
+                            <!-- 比例选择 -->
+                            <div class="ratio-buttons">
+                                <button class="ratio-btn active" data-ratio="1:1">1:1</button>
+                                <button class="ratio-btn" data-ratio="4:3">4:3</button>
+                                <button class="ratio-btn" data-ratio="3:4">3:4</button>
+                                <button class="ratio-btn" data-ratio="16:9">16:9</button>
+                                <button class="ratio-btn" data-ratio="9:16">9:16</button>
+                                <button class="ratio-btn" data-ratio="3:2">3:2</button>
+                                <button class="ratio-btn" data-ratio="2:3">2:3</button>
+                                <button class="ratio-btn" data-ratio="custom">自定义</button>
+                            </div>
+
+                            <!-- 预设尺寸 -->
+                            <div id="preset-sizes" class="preset-sizes">
+                                <button class="size-btn active" data-width="1024" data-height="1024">1024×1024</button>
+                                <button class="size-btn" data-width="512" data-height="512">512×512</button>
+                                <button class="size-btn" data-width="2048" data-height="2048">2048×2048</button>
+                            </div>
+
+                            <!-- 自定义尺寸 -->
+                            <div id="custom-size" class="custom-size hidden">
+                                <div class="size-inputs">
+                                    <div class="size-input-group">
+                                        <label>宽度</label>
+                                        <input type="number" id="custom-width" min="256" max="2048" value="1024">
+                                    </div>
+                                    <span class="size-separator">×</span>
+                                    <div class="size-input-group">
+                                        <label>高度</label>
+                                        <input type="number" id="custom-height" min="256" max="2048" value="1024">
+                                    </div>
+                                </div>
+                                <div class="size-hint">尺寸范围: 256 - 2048</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="generate-btn" class="btn-primary">
+                        <span class="btn-text">生成图片</span>
+                        <span class="btn-loading hidden">生成中...</span>
+                    </button>
+                </div>
+
+                <!-- 右侧：结果区域 -->
+                <div class="result-panel">
+                    <div id="result-placeholder" class="result-placeholder">
+                        <div class="placeholder-icon">🖼️</div>
+                        <p>生成的图片将显示在这里</p>
+                    </div>
+                    <div id="result-image" class="result-image hidden">
+                        <img id="generated-image" src="" alt="生成的图片" class="clickable-image" title="点击放大查看">
+                        <div class="image-actions">
+                            <button id="download-btn" class="btn-secondary">下载图片</button>
+                            <button id="copy-url-btn" class="btn-secondary">复制链接</button>
+                        </div>
+                    </div>
+                    <div id="result-error" class="result-error hidden">
+                        <div class="error-icon">❌</div>
+                        <p id="error-message"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cookie管理页面 -->
+        <section id="cookies" class="tab-content">
+            <div class="management-panel">
+                <div class="panel-header">
+                    <h2>Cookie管理</h2>
+                    <button id="add-cookie-btn" class="btn-primary">添加Cookie</button>
+                </div>
+
+                <div class="info-box">
+                    <p>💡 <strong>提示</strong>: Token值为API Token，可在 <a href="https://ai.gitee.com" target="_blank">ai.gitee.com</a> 获取。每个Token每天 <span id="daily-quota-display">100</span> 次额度，自动轮询使用。</p>
+                </div>
+
+                <!-- Cookie统计 -->
+                <div id="cookie-stats" class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-label">总数</span>
+                        <span class="stat-value" id="stat-total">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">活跃</span>
+                        <span class="stat-value success" id="stat-active">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">禁用</span>
+                        <span class="stat-value warning" id="stat-inactive">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">总使用</span>
+                        <span class="stat-value" id="stat-uses">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">错误率</span>
+                        <span class="stat-value" id="stat-error-rate">0%</span>
+                    </div>
+                </div>
+
+                <!-- Cookie列表 -->
+                <div id="cookie-list" class="item-list">
+                    <div class="list-empty">暂无Cookie，请添加</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API密钥管理页面 -->
+        <section id="keys" class="tab-content">
+            <div class="management-panel">
+                <div class="panel-header">
+                    <h2>API密钥管理</h2>
+                    <button id="add-key-btn" class="btn-primary">创建密钥</button>
+                </div>
+
+                <div class="info-box">
+                    <p>💡 <strong>提示</strong>: API密钥用于外部应用调用本服务的接口，请妥善保管。</p>
+                </div>
+
+                <!-- API密钥列表 -->
+                <div id="key-list" class="item-list">
+                    <div class="list-empty">暂无API密钥，请创建</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模型配置页面 -->
+        <section id="models" class="tab-content">
+            <div class="management-panel">
+                <div class="panel-header">
+                    <h2>模型配置</h2>
+                    <button id="add-model-btn" class="btn-primary">添加模型</button>
+                </div>
+
+                <div class="info-box">
+                    <p>💡 <strong>提示</strong>: 配置自定义模型名称和默认参数，通过OpenAI Chat接口调用时使用。</p>
+                </div>
+
+                <!-- 模型列表 -->
+                <div id="model-list" class="item-list">
+                    <div class="list-empty">暂无自定义模型，请添加</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Cookie编辑弹窗 -->
+    <div id="cookie-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="cookie-modal-title">添加Cookie</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cookie-edit-id">
+                <div class="form-group">
+                    <label for="cookie-name">名称 <span class="required">*</span></label>
+                    <input type="text" id="cookie-name" placeholder="给Token起个名字，如: 账号1">
+                </div>
+                <div class="form-group">
+                    <label for="cookie-value">API Token <span class="required">*</span></label>
+                    <textarea id="cookie-value" rows="2" placeholder="粘贴Gitee AI的API Token..."></textarea>
+                    <div class="form-hint">用于生成图片的Bearer Token</div>
+                </div>
+                <div class="form-group">
+                    <label for="cookie-proxy">SOCKS5代理</label>
+                    <input type="text" id="cookie-proxy" placeholder="socks5://user:pass@host:port（可选）">
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="cookie-active" checked>
+                        启用此Token
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">取消</button>
+                <button id="cookie-save-btn" class="btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API密钥创建弹窗 -->
+    <div id="key-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建API密钥</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="key-name">密钥名称 <span class="required">*</span></label>
+                    <input type="text" id="key-name" placeholder="例如: 测试密钥">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">取消</button>
+                <button id="key-save-btn" class="btn-primary">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新密钥显示弹窗 -->
+    <div id="key-created-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>密钥创建成功</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="warning-text">⚠️ 请立即复制并保存此密钥，关闭后将无法再次查看完整密钥！</p>
+                <div class="key-display">
+                    <code id="new-key-value"></code>
+                    <button id="copy-key-btn" class="btn-secondary">复制</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary modal-close">我已保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型配置弹窗 -->
+    <div id="model-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="model-modal-title">添加模型</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="model-edit-id">
+                <div class="form-group">
+                    <label for="model-name">模型名称 <span class="required">*</span></label>
+                    <input type="text" id="model-name" placeholder="例如: hd-image, fast-image">
+                    <div class="form-hint">通过OpenAI Chat接口调用时使用的模型名称</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="model-width">默认宽度</label>
+                        <input type="number" id="model-width" min="256" max="2048" value="1024">
+                    </div>
+                    <div class="form-group half">
+                        <label for="model-height">默认高度</label>
+                        <input type="number" id="model-height" min="256" max="2048" value="1024">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="model-steps">推理步数</label>
+                    <input type="number" id="model-steps" min="1" max="50" value="9">
+                </div>
+                <div class="form-group">
+                    <label for="model-description">描述</label>
+                    <input type="text" id="model-description" placeholder="模型用途描述（可选）">
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="model-default">
+                        设为默认模型
+                    </label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="model-markdown" checked>
+                        使用Markdown图片格式
+                    </label>
+                    <div class="form-hint">启用后Chat接口返回 ![image](url) 格式，否则只返回URL</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">取消</button>
+                <button id="model-save-btn" class="btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片预览弹窗 -->
+    <div id="image-preview-modal" class="image-preview-modal hidden">
+        <div class="preview-overlay"></div>
+        <div class="preview-container">
+            <button class="preview-close">&times;</button>
+            <img id="preview-image" src="" alt="预览图片">
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
