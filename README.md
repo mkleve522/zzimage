@@ -202,20 +202,16 @@ Chat对话接口（需要API密钥）
 
 以下步骤在 ARM 服务器（如 ARM64）上验证通过，镜像基于多架构的 `python:3.11-slim`，默认使用项目自带的 `python run.py` 启动方式。
 
-### 1. 准备 Dockerfile
 
-在项目根目录创建 `Dockerfile`：
 
 ```dockerfile
 FROM python:3.11-slim
 
-WORKDIR /app
+
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-CMD ["python", "run.py"]
-```
 
 ### 2. 本机（ARM）构建镜像
 
