@@ -3,7 +3,7 @@
 ZZImage 启动脚本
 """
 import uvicorn
-from app.config import HOST, PORT
+from app.config import HOST, PORT, RELOAD
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
         "app.main:app",
         host=HOST,
         port=PORT,
-        reload=True,
+        reload=RELOAD,
         log_level="info"
     )
 
