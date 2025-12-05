@@ -18,6 +18,9 @@ PORT = int(os.getenv("PORT", 8000))
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
+# 热重载（仅开发环境建议开启）
+RELOAD = os.getenv("RELOAD", "false").lower() in {"1", "true", "t", "yes", "on"}
+
 # 图片尺寸限制
 MAX_IMAGE_SIZE = 2048
 MIN_IMAGE_SIZE = 256
