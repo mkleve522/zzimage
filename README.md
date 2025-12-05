@@ -198,6 +198,79 @@ Chat对话接口（需要API密钥）
 |------|------|----------|
 | z-image-turbo | 快速生成模型 | 9 |
 
+## Docker 部署（含 ARM）
+
+以下步骤在 ARM 服务器（如 ARM64）上验证通过，镜像基于多架构的 `python:3.11-slim`，默认使用项目自带的 `python run.py` 启动方式。
+
+### 1. 准备 Dockerfile
+
+在项目根目录创建 `Dockerfile`：
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+CMD ["python", "run.py"]
+```
+
+### 2. 本机（ARM）构建镜像
+
+ARM 服务器直接构建即可，Docker 会自动拉取 ARM 架构基础镜像：
+
+```bash
+docker build -t zzimage:arm .
+```
+
+> 如果镜像较大或网络慢，可加 `--pull` 强制拉取最新基础镜像，避免旧缓存导致的漏洞或缺包。
+
+### 3. x86 上为 ARM 交叉构建（可选）
+
+如果只有 x86 机器但需要给 ARM 服务器准备镜像，先启用 buildx（Docker Desktop 默认开启，多数服务器需手动创建）：
+
+```bash
+docker buildx create --use --name zzimage-arm-builder
+docker buildx inspect --bootstrap
+```
+
+然后使用 `--platform linux/arm64` 构建并推送到仓库（或导出为 tar 再传到 ARM 服务器）：
+
+```bash
+docker buildx build \
+  --platform linux/arm64 \
+  -t your-registry/zzimage:arm \
+  --push .
+```
+
+如果不方便推送，也可改用 `--output type=tar,dest=zzimage_arm.tar` 导出后在 ARM 服务器上 `docker load -i zzimage_arm.tar` 导入。
+
+### 4. ARM 服务器运行容器
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -e HOST=0.0.0.0 \
+  -e PORT=8000 \
+  -e ADMIN_USERNAME=your_admin \
+  -e ADMIN_PASSWORD=strong_password \
+  -v $(pwd)/data:/app/data \
+  --name zzimage \
+  zzimage:arm
+```
+
+- `-v $(pwd)/data:/app/data` 挂载数据目录，持久化数据库和密钥，确保宿主机 `data/` 目录有写权限。
+- ARM 服务器上直接运行即可，无需额外 QEMU 配置；若端口需变更，调整 `-p` 与 `PORT` 环境变量即可。
+
+### 5. 验证与管理
+
+- 首次启动后访问 `http://<服务器IP>:8000`，API 文档在 `/docs`。
+- 查看实时日志：`docker logs -f zzimage`
+- 停止/启动：`docker stop zzimage` / `docker start zzimage`
+- 更新镜像后重新部署：`docker pull <镜像>`，然后 `docker rm -f zzimage && <docker run ...>`
+
 ## 预设尺寸
 
 | 比例 | 可选尺寸 |
